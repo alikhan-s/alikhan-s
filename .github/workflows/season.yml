@@ -1,0 +1,33 @@
+name: seasonal header
+
+on:
+  schedule:
+    - cron: "0 0 1 * *"   # 1st day of every month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  swap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pick banner for the current season
+        run: |
+          month=$(date -u +%-m)
+          case $month in
+            12|1|2) season=winter ;;
+            3|4|5)  season=spring ;;
+            6|7|8)  season=summer ;;
+            *)      season=autumn ;;
+          esac
+          cp "assets/header/$season.svg" assets/header.svg
+          echo "season=$season" >> "$GITHUB_ENV"
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/header.svg
+          git diff --cached --quiet || git commit -m "header: $season"
+          git push
